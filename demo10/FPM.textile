@@ -1,0 +1,214 @@
+Title: FPM: Effing Package Management
+Subtitle: FlatStack Demo #10
+Author: Timur Batyrshin
+Copyright:
+Duration: 15
+
+h1{text-align:center}. FPM: Effing Package Management
+
+h2{text-align:center}. FlatStack Demo #10
+
+h2{text-align:center}. Timur Batyrshin
+
+p{text-align:center}. (Loosely based on docs/examples for FPM)
+
+h1. Installing stuff on the box
+
+Suppose you need some mega-service installed on the box.
+<% code do %>
+wget http://some.url.to/mega-service-7.77.tgz
+tar -xf mega-service-7.77.tgz
+cd mega-service-7.77
+./configure
+make
+sudo make install
+<% end %>
+
+h1. Installing stuff on the box
+
+In fact you often run into something like this:
+<% code do %>
+wget http://some.url.to/mega-service-7.77.tgz
+#      ouch! 7.78 is out and 7.77 is no longer available
+wget http://some.url.to/mega-service-7.78.tgz
+tar -xf mega-service-7.78.tgz
+cd mega-service-7.78
+./configure
+#      ouch! some dependencies were not installed
+apt-get install some deps
+./configure
+make
+sudo make install
+<% end %>
+
+h1. Some months later
+<% code do %>
+$ mega-service
+Some weird error happened. Missing file 'erase.me'
+$ dpkg-query -l | grep mega
+$ which mega-service
+/usr/local/bin
+$ ls -l /usr/local/mega-service
+No such file or directory
+<% end %>
+* What is the version of the software?
+* Where is it installed?
+* Is everything in place?
+* How do I uninstall it?
+
+h1. Using FPM: Building the software
+
+Build it on your desktop as usual:
+<% code do %>
+# Normal build steps.
+wget http://nodejs.org/dist/v0.6.0/node-v0.6.0.tar.gz
+tar -zxf node-v0.6.0.tar.gz
+cd node-v0.6.0
+./configure --prefix=/usr
+make
+<% end %>
+
+and install to a separate directory for capture.
+<% code do %>
+mkdir /tmp/installdir
+make install DESTDIR=/tmp/installdir
+<% end %>
+
+h1. Using FPM: Building the package
+
+Create a nodejs deb with only bin and lib directories:
+<% code do %>
+# The 'VERSION' and 'ARCH' strings are automatically filled in for you
+# based on the other arguments given.
+
+fpm -s dir -t deb -n nodejs -v 0.6.0 -C /tmp/installdir \
+  -p nodejs-VERSION_ARCH.deb \
+  -d "libssl0.9.8 (> 0)" \
+  -d "libstdc++6 (>= 4.4.3)" \
+  usr/bin usr/lib
+<% end %>
+
+h1. Using FPM: Building docs and dev package
+
+Package up the manpages (create nodejs-doc)
+<% code do %>
+fpm -s dir -t deb -p nodejs-doc-VERSION_ARCH.deb -n nodejs-doc \
+  -v 0.6.0 -C /tmp/installdir usr/share/man
+<% end %>
+
+Now create the -dev package
+<% code do %>
+fpm -s dir -t deb -p nodejs-dev-VERSION_ARCH.deb -n nodejs-dev \
+  -v 0.6.0 -C /tmp/installdir usr/include
+<% end %>
+
+h1. Using FPM: Testing the package
+
+Let's test the package out:
+<% code do %>
+$ file nodejs-0.6.0-1_amd64.deb
+nodejs-0.6.0-1_amd64.deb: Debian binary package (format 2.0)
+$ sudo dpkg -i nodejs-0.6.0-1_amd64.deb 
+$ /usr/bin/node --version
+v0.6.0
+<% end %>
+
+h1. Packaging simple files
+
+We can package a single file or a dir easily:
+<% code do %>
+fpm -s dir -t deb -n jenkins -v 1.396 --prefix /opt/jenkins jenkins.war
+<% end %>
+
+h1. Packaging gems
+
+Suppose we need cucumber packaged:
+<% code do %>
+$ mkdir /tmp/gems
+$ gem install --no-ri --no-rdoc --install-dir /tmp/gems cucumber
+Successfully installed json-1.6.5
+Successfully installed gherkin-2.9.1
+Successfully installed term-ansicolor-1.0.7
+Successfully installed builder-3.0.0
+Successfully installed diff-lcs-1.1.3
+Successfully installed cucumber-1.1.9
+6 gems installed
+$ for x in $(ls /tmp/gems/cache/*.gem); do
+for> fpm -s gem -t deb $x
+for> done
+Created /tmp/gems/rubygem-json-1.66.-1.amd64.deb
+Created /tmp/gems/rubygem-builder-3.0.0-1.amd64.deb
+Created /tmp/gems/rubygem-gherkin-2.9.1-1.amd64.deb
+Created /tmp/gems/rubygem-diff-lcs-1.1.3-1.amd64.deb
+Created /tmp/gems/rubygem-term-ansicolor-1.0.7-1.amd64.deb
+Created /tmp/gems/rubygem-cucumber-1.1.9-1.amd64.deb
+<% end %>
+
+h1. Packaging gems: checking the package
+
+Browse the info:
+<% code do %>
+$ dpkg --info ./rubygem-cucumber_1.1.9-1_all.deb                                                                            
+ new debian package, version 2.0.
+ size 667736 bytes: control archive= 498 bytes.
+       0 bytes,     0 lines      conffiles            
+     561 bytes,    14 lines      control              
+ Package: rubygem-cucumber
+ Version: 1:1.1.9-1
+ License: no license listed in cucumber-1.1.9.gem
+ Vendor: Aslak Hellesøy
+ Architecture: all
+ Maintainer: <timurb@admin2>
+ Installed-Size: 1902
+ Depends: rubygem-gherkin (>= 2.9.0), rubygem-gherkin (<< 2.10.0), 
+   rubygem-term-ansicolor (>= 1.0.6), rubygem-builder (>= 2.1.2), 
+   rubygem-diff-lcs (>= 1.1.2), rubygem-json (>= 1.4.6)
+ #Pre-Depends: 
+ Provides: rubygem-rubygem-cucumber
+ Section: Languages/Development/Ruby
+ Priority: extra
+ Homepage: http://cukes.info
+ Description: Behaviour Driven Development with elegance and joy
+<% end %>
+
+h1. Packaging gems: watch out for RVM!
+
+RVM should be disabled on the box or you'll get:
+<% code do %>
+$ dpkg -c rubygem-cucumber_1.1.9-1_all.deb | head                                                                           
+drwx------ timurb/users      0 2012-03-20 15:31 ./
+drwxrwxr-x timurb/users      0 2012-03-20 15:31 ./usr/
+drwxrwxr-x timurb/users      0 2012-03-20 15:31 ./usr/local/
+drwxrwxr-x timurb/users      0 2012-03-20 15:31 ./usr/local/rvm/
+drwxrwxr-x timurb/users      0 2012-03-20 15:31 ./usr/local/rvm/gems/
+drwxrwxr-x timurb/users      0 2012-03-20 15:31 ./usr/local/rvm/gems/ree-1.8.7-2011.03/
+drwxrwxr-x timurb/users      0 2012-03-20 15:31 ./usr/local/rvm/gems/ree-1.8.7-2011.03/cache/
+-rw-rw-r-- timurb/users 332288 2012-03-20 15:31 ./usr/local/rvm/gems/ree-1.8.7-2011.03/cache/cucumber-1.1.9.gem
+drwxrwxr-x timurb/users      0 2012-03-20 15:31 ./usr/local/rvm/gems/ree-1.8.7-2011.03/gems/
+drwxrwxr-x timurb/users      0 2012-03-20 15:31 ./usr/local/rvm/gems/ree-1.8.7-2011.03/gems/cucumber-1.1.9/
+<% end %>
+
+h1. Other features:
+
+<% left do %>
+h2. Sources:
+* dirs/files
+* rpm
+* gem
+* python
+* npm
+* pear
+<% end %>
+<% right do %>
+h2. Targets:
+* rpm
+* deb
+* solaris
+* puppet
+<% end %>
+
++ All package-manager provided stuff (depends,provides,pre/post-install scripts etc.)
+
+!SLIDE
+
+h2{text-align:center}. Questions?
