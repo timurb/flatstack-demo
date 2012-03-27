@@ -188,6 +188,38 @@ v0.6.0
 
 </div>
 <div class='slide '>
+<h1>Packaging Ruby 1.9.3</h1><!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+# install dependencies needed to build ruby and build it
+apt-get install build-essential libyaml-dev libffi-dev libgdbm-dev ...
+wget http://ftp.ruby-lang.org/pub/ruby/1.9/ruby-1.9.3-p0.tar.gz
+tar -xf ruby-1.9.3-p0.tar.gz
+cd ruby-1.9.3-p0
+ 
+# use /var/lib/gems instead of /usr/lib/ruby/gems for gempath
+patch -p0 &lt; ruby-ubuntu.patch 
+
+# this huge string is taken from Debian ruby1.9 src package
+CFLAGS=&quot;-fno-strict-aliasing -g -g -O2&quot; ...  ./configure \
+--build=x86_64-linux-gnu --prefix=/usr --includedir=&quot;\${prefix}/include&quot; ...
+...
+
+make
+make install DESTDIR=/tmp/ruby
+fpm -s dir -t deb -n ruby1.9 -v 1.9.3 -C /tmp/ruby/ \
+    -p ruby1.9-VERSION_ARCH.deb -d libc6 -d libncurses5 -d zlib1g \
+    usr/bin $(cd /tmp/ruby; ls usr/lib/*.so.*) usr/lib/ruby usr/share var
+
+fpm -s dir -t deb -n ruby1.9-dev -v 1.9.3 -C /tmp/ruby/ \
+     -d ruby1.9 \
+     -p ruby1.9-dev-VERSION_ARCH.deb \
+     usr/include $(cd /tmp/ruby; ls usr/lib/*.{so,a}) usr/lib/pkgconfig
+</pre></div>
+<!-- end code -->
+
+
+</div>
+<div class='slide '>
 <h1>Packaging simple files</h1><p>We can package a single file or a dir easily:</p>
 <!-- begin code{} -->
 <div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
