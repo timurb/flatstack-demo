@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Slide Show (S9); see slideshow.rubyforge.org" />
+<meta name="author" content="Timur Batyrshin" />
+<meta name="copyright" content="" />
+<meta name="duration" content="5" />
+<meta name="font-size-adjustment" content="-2" />
+
+<title>Reprepro: building apt repositories</title>
+
+<link rel="stylesheet" href="styles/slidy.css" type="text/css" />
+<link rel="stylesheet" href="styles/w3c-blue.css" type="text/css" />
+<script src="scripts/slidy.js" charset="utf-8" type="text/javascript"></script>
+</head>
+<body>
+<div class="background"><img alt="" id="head-icon"
+src="graphics/icon-blue.png" /><object id="head-logo"
+data="graphics/w3c-logo-white.svg" type="image/svg+xml"
+title="W3C logo"><a href="http://www.w3.org/"><img
+alt="W3C logo" id="head-logo-fallback"
+src="graphics/w3c-logo-white.gif" /></a></object></div>
+
+<div class="background slanty">
+<img src="graphics/w3c-logo-slanted.jpg" alt="slanted W3C logo" />
+</div>
+<div class="slide cover title">
+  <!-- hidden style graphics to ensure they are saved with other content -->
+  <img class="hidden" src="graphics/bullet.png" alt="" />
+  <img class="hidden" src="graphics/fold.gif" alt="" />
+  <img class="hidden" src="graphics/unfold.gif" alt="" />
+  <img class="hidden" src="graphics/fold-dim.gif" alt="" />
+  <img class="hidden" src="graphics/nofold-dim.gif" alt="" />
+  <img class="hidden" src="graphics/unfold-dim.gif" alt="" />
+  <img class="hidden" src="graphics/bullet-fold.gif" alt="" />
+  <img class="hidden" src="graphics/bullet-unfold.gif" alt="" />
+  <img class="hidden" src="graphics/bullet-fold-dim.gif" alt="" />
+  <img class="hidden" src="graphics/bullet-nofold-dim.gif" alt="" />
+  <img class="hidden" src="graphics/bullet-unfold-dim.gif" alt="" />
+
+<img src="graphics/keys2.jpg" alt="Cover page images (keys)"
+ class="cover" /><br clear="all" />
+<h1>Reprepro: building apt repositories</h1>
+
+<p>Timur Batyrshin<br />
+<br />
+<br />
+<br />
+<br /><em>Hit the space bar or swipe right for next slide</em></p>
+</div>
+
+<div class='slide '>
+<h1 style="text-align:center;">Reprepro: building apt repositories</h1><h2 style="text-align:center;">FlatStack Demo #11</h2>
+<h2 style="text-align:center;">Timur Batyrshin</h2>
+
+</div>
+<div class='slide '>
+<h1>Installing self-built deb-packages manually</h1><ul>
+	<li>Build the package (see <a href="../demo10/FPM.html">my slides</a> for the previous demo)</li>
+</ul>
+<!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+# Download it to local box and install
+rsync -e ssh myrepo.mybox.org:ruby1.9-1my1.deb .
+sudo dpkg -i ruby1.9-1my1.deb
+</pre></div>
+<!-- end code -->
+
+<ul>
+	<li>Upgrading: repeat the same with new package versions
+	<ul>
+		<li>On many boxes</li>
+		<li>Each time with newer version No</li>
+		<li>Not scriptable</li>
+	</ul></li>
+</ul>
+
+</div>
+<div class='slide '>
+<h1>Installing self-built deb-packages by apt</h1><ul>
+	<li>Build the package (see <a href="../demo10/FPM.html">my slides</a> for the previous demo)</li>
+	<li>Put it into apt repo</li>
+</ul>
+<!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+# Add apt repository (needs to be done only once) and install
+wget -O - http://myrepo.mybox.org/repo/pubkey.gpg | sudo apt-key add -
+sudo apt-add-repository 'deb http://myrepo.mybox.org/repo lucid main
+sudo apt-get update
+sudo apt-get install ruby1.9
+</pre></div>
+<!-- end code -->
+
+<ul>
+	<li>Upgrading</li>
+</ul>
+<!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+sudo apt-get update
+sudo apt-get dist-upgrade
+</pre></div>
+<!-- end code -->
+
+
+</div>
+<div class='slide '>
+<h1><a href="http://mirrorer.alioth.debian.org/">reprepro</a></h1><ul>
+	<li>Create repository for our packages</li>
+	<li>Pull packages from upstream repositories into local</li>
+</ul>
+
+</div>
+<div class='slide '>
+<h1>Apt repository structure</h1><p>Syntax:</p>
+<!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+deb URL suite component1 component2
+</pre></div>
+<!-- end code -->
+
+
+</div>
+<div class='slide '>
+<h1>Apt repository structure</h1><p>Syntax:</p>
+<!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+deb URL suite component1 component2
+</pre></div>
+<!-- end code -->
+
+<ul>
+	<li>suite: lucid, natty, squeeze, etc</li>
+	<li>component: main, classic, etc</li>
+</ul>
+<p>Example:</p>
+<!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+deb http://myrepo.mybox.org/repo/ lucid main puppet mongodb tomcat7 sunjava ssh-lpk
+</pre></div>
+<!-- end code -->
+
+
+</div>
+<div class='slide '>
+<h1>reprepro commands</h1><ul>
+	<li>Include self-built packages:</li>
+</ul>
+<!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+reprepro includedeb lucid ruby1.9-1my1.deb
+</pre></div>
+<!-- end code -->
+
+<ul>
+	<li>Browse repository:</li>
+</ul>
+<!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+reprepro list lucid
+reprepro ls ruby1.9
+</pre></div>
+<!-- end code -->
+
+<ul>
+	<li>Pull packages from upstream:</li>
+</ul>
+<!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+reprepro checkupdate
+reprepro update
+</pre></div>
+<!-- end code -->
+
+
+</div>
+<div class='slide '>
+<h1>reprepro directory structure</h1><!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+$ ls -1 /var/cache/reprepro/
+conf      # configs
+db        # internal DB
+lists     # upstream package lists
+logs
+out       # actual repo to share
+removed   # obsolete packages for possible rollbacks
+</pre></div>
+<!-- end code -->
+
+
+</div>
+<div class='slide '>
+<h1>reprepro directory structure</h1><!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+$ ls -1 /var/cache/reprepro/
+conf      # configs
+db        # internal DB
+lists     # upstream package lists
+logs
+out       # actual repo to share
+removed   # obsolete packages for possible rollbacks
+</pre></div>
+<!-- end code -->
+
+<p>Add the paths as reprepro params:</p>
+<!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+$ cat /usr/local/bin/reprepro 
+#!/bin/sh
+
+/usr/bin/reprepro --ask-passphrase -b /var/cache/reprepro/ \
+                  --outdir='+b/out' --morguedir='+b/removed' $@
+</pre></div>
+<!-- end code -->
+
+
+</div>
+<div class='slide '>
+<h1>reprepro configs</h1><ul>
+	<li>General reprepro config</li>
+</ul>
+<!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+$ cat /var/cache/reprepro/conf/distributions 
+Codename: lucid
+Architectures: i386 amd64 source
+Description: Our ubuntu package repo
+SignWith: yes
+Log: lucid.log
+Components: main puppet mongodb tomcat7 sunjava ssh-lpk
+Update: puppetlabs mongodb-10gen tomcat7 ssh-lpk
+</pre></div>
+<!-- end code -->
+
+<!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+deb http://myrepo.mybox.org/repo/ lucid main puppet mongodb tomcat7 sunjava ssh-lpk
+</pre></div>
+<!-- end code -->
+
+
+</div>
+<div class='slide '>
+<h1>reprepro configs</h1><ul>
+	<li>Config for pulling from upstream</li>
+</ul>
+<!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+$ cat /var/cache/reprepro/conf/updates  | head
+Name: puppetlabs
+Method: http://apt.puppetlabs.com/
+Suite: lucid
+Components: main&gt;puppet
+VerifyRelease: 1054B7A24BD6EC30|4BD6EC30
+</pre></div>
+<!-- end code -->
+
+<!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+deb http://apt.puppetlabs.com/ lucid main
+</pre></div>
+<!-- end code -->
+
+
+</div>
+<div class='slide '>
+<h1>signing repositories</h1><ul>
+	<li>Generate key on box with repo</li>
+</ul>
+<!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+gpg --gen-key
+</pre></div>
+<!-- end code -->
+
+<ul>
+	<li>Put public key to repo rootdir</li>
+</ul>
+<!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+cp ~/.gnupg/pubring.gpg /var/cache/reprepro/out
+</pre></div>
+<!-- end code -->
+
+<ul>
+	<li>Add the key to all boxes using the repo</li>
+</ul>
+<!-- begin code{} -->
+<div class='code'><pre class='brush: ruby toolbar: false gutter: true'>
+wget -O - http://myrepo.mybox.org/repo/pubkey.gpg | sudo apt-key add -
+</pre></div>
+<!-- end code -->
+
+</div>
+<div class='slide '>
+<p><!-- _S9SLIDE_  --></p>
+<h2 style="text-align:center;">Questions?</h2></div>
+
+
+</body>
+</html>
