@@ -1,0 +1,173 @@
+Title: Reprepro: building apt repositories
+Subtitle: FlatStack Demo #11
+Author: Timur Batyrshin
+Copyright:
+Duration: 20
+
+h1{text-align:center}. Reprepro: building apt repositories
+
+h2{text-align:center}. FlatStack Demo #11
+
+h2{text-align:center}. Timur Batyrshin
+
+h1. Installing self-built deb-packages manually
+
+* Build the package (see "my slides":../demo10/FPM.html for the previous demo)
+
+<% code do %>
+# Download it to local box and install
+rsync -e ssh myrepo.mybox.org:ruby1.9-1my1.deb .
+sudo dpkg -i ruby1.9-1my1.deb
+<% end %>
+
+* Upgrading: repeat the same with new package versions
+** On many boxes
+** Each time with newer version No
+** Not scriptable
+
+h1. Installing self-built deb-packages by apt
+
+* Build the package (see "my slides":../demo10/FPM.html for the previous demo)
+* Put it into apt repo
+
+<% code do %>
+# Add apt repository (needs to be done only once) and install
+wget -O - http://myrepo.mybox.org/repo/pubkey.gpg | sudo apt-key add -
+sudo apt-add-repository 'deb http://myrepo.mybox.org/repo lucid main
+sudo apt-get update
+sudo apt-get install ruby1.9
+<% end %>
+
+* Upgrading
+<% code do %>
+sudo apt-get update
+sudo apt-get dist-upgrade
+<% end %>
+
+h1. "reprepro":http://mirrorer.alioth.debian.org/
+
+* Create repository for our packages
+* Pull packages from upstream repositories into local
+
+h1. Apt repository structure
+
+Syntax:
+<% code do %>
+deb URL suite component1 component2
+<% end %>
+
+* suite: lucid, natty, squeeze, etc
+* component: main, classic, contrib, etc
+
+Example:
+<% code do %>
+deb http://myrepo.mybox.org/repo/ lucid main puppet mongodb tomcat7 sunjava
+<% end %>
+
+h1. reprepro commands
+
+* Include self-built packages:
+<% code do %>
+reprepro includedeb lucid ruby1.9-1my1.deb
+<% end %>
+
+* Browse repository:
+<% code do %>
+reprepro list lucid
+reprepro ls ruby1.9
+<% end %>
+
+* Pull packages from upstream:
+<% code do %>
+reprepro checkupdate
+reprepro update
+<% end %>
+
+h1. reprepro directory structure
+
+<% code do %>
+$ ls -1 /var/cache/reprepro/
+conf      # configs
+db        # internal DB
+lists     # upstream package lists
+logs
+out       # actual repo to share
+removed   # obsolete packages for possible rollbacks
+<% end %>
+
+h1. reprepro directory structure
+
+<% code do %>
+$ ls -1 /var/cache/reprepro/
+conf      # configs
+db        # internal DB
+lists     # upstream package lists
+logs
+out       # actual repo to share
+removed   # obsolete packages for possible rollbacks
+<% end %>
+
+Add the paths as reprepro params:
+
+<% code do %>
+$ cat /usr/local/bin/reprepro 
+#!/bin/sh
+
+/usr/bin/reprepro --ask-passphrase -b /var/cache/reprepro/ \
+                  --outdir='+b/out' --morguedir='+b/removed' $@
+<% end %>
+
+h1. reprepro configs
+
+* General reprepro config
+<% code do %>
+$ cat /var/cache/reprepro/conf/distributions 
+Codename: lucid
+Architectures: i386 amd64 source
+Description: Our ubuntu package repo
+SignWith: yes
+Log: lucid.log
+Components: main puppet mongodb tomcat7 sunjava ssh-lpk
+Update: puppetlabs mongodb-10gen tomcat7 ssh-lpk
+<% end %>
+
+<% code do %>
+deb http://myrepo.mybox.org/repo/ lucid main puppet mongodb tomcat7 sunjava ssh-lpk
+<% end %>
+
+h1. reprepro configs
+
+* Config for pulling from upstream
+<% code do %>
+$ cat /var/cache/reprepro/conf/updates  | head
+Name: puppetlabs
+Method: http://apt.puppetlabs.com/
+Suite: lucid
+Components: main>puppet
+VerifyRelease: 1054B7A24BD6EC30|4BD6EC30
+<% end %>
+
+<% code do %>
+deb http://apt.puppetlabs.com/ lucid main
+<% end %>
+
+h1. signing repositories
+
+* Generate key on box with repo
+<% code do %>
+gpg --gen-key
+<% end %>
+
+* Put public key to repo rootdir
+<% code do %>
+cp ~/.gnupg/pubring.gpg /var/cache/reprepro/out
+<% end %>
+
+* Add the key to all boxes using the repo
+<% code do %>
+wget -O - http://myrepo.mybox.org/repo/pubkey.gpg | sudo apt-key add -
+<% end %>
+
+!SLIDE
+
+h2{text-align:center}. Questions?
